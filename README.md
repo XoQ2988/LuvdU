@@ -5,7 +5,7 @@
 - [ ] Windows Startup or self Deletion
 - [ ] Grab Discord Token
 - [ ] Grab Browser cookies & passwords
-- [ ] Inject into discord
+- [X] Inject into discord
 
 ## Feature Showcase:
 <h3 align="center">Obfuscated code</h2>
